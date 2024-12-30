@@ -11,6 +11,7 @@ const StockSchema = new mongoose.Schema({
 
 // Define the User Schema
 const UserSchema = new mongoose.Schema({
+    userId: {type: String, required: true},
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
@@ -22,6 +23,6 @@ const UserSchema = new mongoose.Schema({
     profit: { type: Number, default: 0.0 }
 });
 
-
+const Stock = mongoose.model("Stock",StockSchema);
 const User = mongoose.model("User", UserSchema);
-export default User;
+export { User, Stock };
