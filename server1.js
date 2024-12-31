@@ -1,72 +1,3 @@
-require('dotenv').config();  // Load environment variables from .env
-const express = require("express");
-const jwt = require("jsonwebtoken");
-const mongoose = require("mongoose");
-const axios = require('axios');
-
-// Connect to the database
-mongoose.connect(process.env.DB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log("Database connected successfully"))
-    .catch(err => console.error("Database connection error:", err));
-
-// Define the Stock Schema
-const StockSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    ticker: { type: String, required: true },
-    exchange: { type: String, required: true },
-    buyingPrice: { type: Number, required: true }
-});
-
-// Define the User Schema
-const UserSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    stocks: {
-        type: [StockSchema],
-        maxlength: 5, // Limit array length to 5
-        required: true
-    },
-    profit: { type: Number, default: 0.0 }
-});
-
-const User = mongoose.model("User", UserSchema);
-
-const app = express();
-const jwtSecret = process.env.JWT_SECRET;
-app.use(express.json());
-
-// Handling User authentication
-async function userExists(req, res, next) {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-        return res.status(400).json({ error: "Email and password are required" });
-    }
-
-    try {
-        const user = await User.findOne({ email, password });
-        if (!user) {
-            return res.status(404).json({ error: "Invalid email or password" });
-        }
-        req.user = user;
-        next();
-    } catch (error) {
-        console.error("Error checking user existence:", error);
-        res.status(500).json({ error: "Internal server error" });
-    }
-}
-
-// Token Generation
-function generateToken(req, res) {
-    const { email } = req.user;
-    const token = jwt.sign({ email }, jwtSecret, { expiresIn: "1h" });
-    res.json({
-        message: "Login successful",
-        token,
-    });
-}
-
 // Stock price fetching utility
 async function getStockPrice(ticker, exchange) {
     try {
@@ -84,26 +15,6 @@ async function getStockPrice(ticker, exchange) {
         throw new Error(`Error fetching data for ${ticker}: ${error.message}`);
     }
 }
-
-// Sign Up Route
-app.post("/signup", async (req, res) => {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-        return res.status(400).json({ error: "All fields are required" });
-    }
-
-    try {
-        const user = new User({ name, email, password, stocks: [] });
-        await user.save();
-        res.json({ message: "User created successfully" });
-    } catch (error) {
-        res.status(400).json({ error: "Error creating user", details: error.message });
-    }
-});
-
-// Sign In Route
-app.post("/signin", userExists, generateToken);
 
 // Dashboard Route
 app.get("/dashboard", async (req, res) => {
@@ -283,68 +194,6 @@ app.post("/sell", async (req, res) => {
 
     } catch (error) {
         console.error("Sell stock error:", error);
-        if (error.name === "JsonWebTokenError") {
-            return res.status(401).json({ error: "Invalid or expired token" });
-        }
-        res.status(500).json({ error: "Internal server error" });
-    }
-});
-
-// Password Update Route
-app.put("/forgetpassword", async (req, res) => {
-    const token = req.headers.authorization;
-    const { password: newPassword } = req.body;
-
-    if (!token) {
-        return res.status(401).json({ error: "Authorization token is required" });
-    }
-
-    if (!newPassword) {
-        return res.status(400).json({ error: "New password is required" });
-    }
-
-    try {
-        const decoded = jwt.verify(token, jwtSecret);
-        const { email } = decoded;
-
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        user.password = newPassword;
-        await user.save();
-
-        res.json({ message: "Password updated successfully" });
-    } catch (error) {
-        console.error("Error in forgetpassword route:", error);
-        if (error.name === "JsonWebTokenError") {
-            return res.status(401).json({ error: "Invalid or expired token" });
-        }
-        res.status(500).json({ error: "Internal server error" });
-    }
-});
-
-// Delete User Route
-app.delete("/user", async (req, res) => {
-    const token = req.headers.authorization;
-    if (!token) {
-        return res.status(401).json({ error: "Authorization token is required" });
-    }
-    try {
-        const decoded = jwt.verify(token, jwtSecret);
-        const { email } = decoded;
-
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ error: "User not found" });
-        }
-        await User.deleteOne({ email: email });
-        res.json({
-            result: "User Deleted"
-        });
-    } catch (error) {
-        console.error("Error in Deletion Route", error);
         if (error.name === "JsonWebTokenError") {
             return res.status(401).json({ error: "Invalid or expired token" });
         }
