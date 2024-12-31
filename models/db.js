@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 // Define the Stock Schema
 const StockSchema = new mongoose.Schema({
+    id:{type :Number,required: true},//Range 1 to 5
     name: { type: String, required: true },
     ticker: { type: String, required: true },
     exchange: { type: String, required: true },
