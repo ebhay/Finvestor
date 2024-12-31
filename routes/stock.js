@@ -7,18 +7,42 @@ dotenv.config();
 const router = express.Router();
 
 //Holdings
-router.get("/",auth,async (req,res)=>{
-    try{
-        const user=await User.find({userId : req.userId});
-        const stocks=user[0].stocks;
-        res.json(stocks);
-        console.log(stocks);
-    }
-    catch(err){
-        res.status(500).json({message:err.message});
+router.get("/", auth, async (req, res) => {
+    try {
+        const user = await User.findOne({ userId: req.userId });
+        if (!user) {
+            return res.status(404).json({ message: "User not found." });
         }
+        const portfolioData = [];
+        let totalGains = 0;
+        for (const stock of user.stocks) {
+            const response = await fetch(
+                `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${stock.ticker}.${stock.exchange}&apikey=${process.env.AV_KEY}`
+            );
+            const data = await response.json();
+            if (data['Error Message']) {
+                continue;
+            }
+            const timeSeries = data['Time Series (Daily)'];
+            const lastRefreshed = data['Meta Data']['3. Last Refreshed'];
+            const currentPrice = parseFloat(timeSeries[lastRefreshed]['4. close']);
+            const gain = currentPrice - stock.buyingPrice;
+            totalGains += gain;
+            portfolioData.push({
+                name: stock.name,
+                buyingPrice: stock.buyingPrice.toFixed(2),
+                currentPrice: currentPrice.toFixed(2),
+                gain: gain.toFixed(2)
+            });
+        }
+        res.json({
+            holdings: portfolioData,
+            totalGains: totalGains.toFixed(2)
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
 });
-
 //Fetch Stock Details
 router.post("/query", async (req, res) => {
     const {ticker,exchange}=req.body;
