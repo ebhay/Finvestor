@@ -101,5 +101,72 @@ router.post("/buy",auth,async (req,res)=>{
     }
 });
 
+//Sell
+router.post("/sell", auth, async (req, res) => {
+    const { id } = req.body;
+    
+    if (!id) {
+        return res.status(400).json({ message: "Please provide stock id" });
+    }
+
+    try {
+        const user = await User.findOne({ userId: req.userId });
+        if (!user) {
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        const stockIndex = user.stocks.findIndex(stock => stock.id === parseInt(id));
+        if (stockIndex === -1) {
+            return res.status(404).json({ message: "Stock not found in your portfolio." });
+        }
+
+        const stockToSell = user.stocks[stockIndex];
+
+        const response = await fetch(
+            `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${stockToSell.ticker}.${stockToSell.exchange}&apikey=${process.env.AV_KEY}`
+        );
+        const data = await response.json();
+        
+        if (data['Error Message']) {
+            return res.status(400).json({ message: "Error fetching current stock price." });
+        }
+
+        const metaData = data['Meta Data'];
+        const timeSeries = data['Time Series (Daily)'];
+        const lastRefreshed = metaData['3. Last Refreshed'];
+        const latestData = timeSeries[lastRefreshed];
+        const currentPrice = parseFloat(latestData['4. close']);
+
+        const profitPerShare = currentPrice - stockToSell.buyingPrice;
+        const totalProfit = profitPerShare;
+
+        user.profit += totalProfit;
+
+        user.stocks.splice(stockIndex, 1);
+
+        user.stocks.forEach((stock, index) => {
+            stock.id = index + 1;
+        });
+
+        await user.save();
+
+        res.json({ 
+            message: "Stock sold successfully!", 
+            soldStock: stockToSell,
+            salePrice: currentPrice,
+            profit: totalProfit,
+            totalProfit: user.profit,
+            remainingStocks: user.stocks.length
+        });
+
+    } catch (err) {
+        console.error('Error selling stock:', err);
+        res.status(500).json({ 
+            message: "An error occurred while processing your request.",
+            error: err.message 
+        });
+    }
+});
+
 
 export default router;
