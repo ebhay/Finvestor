@@ -6,6 +6,9 @@ import { v4 as uuidv4 } from 'uuid';
 const uniqueId = uuidv4();
 const router = express.Router();
 
+import dotenv from "dotenv";
+dotenv.config();
+
 import bcrypt from 'bcrypt';
 const saltRounds = 10;
 
@@ -50,7 +53,7 @@ router.post("/login", async (req, res) => {
             expiresIn: '24h'
         });
 
-        res.json({ token, user: { id: user._id, email: user.email, name: user.name } });
+        res.json({ token: `Bearer ${token}`, user: { id: user._id, email: user.email, name: user.name } });
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
@@ -58,7 +61,7 @@ router.post("/login", async (req, res) => {
 
 // Password Update
 router.put("/forgetpassword", async (req, res) => {
-    const token = req.headers.authorization;
+    const token = req.header('Authorization')?.replace('Bearer ', '');
     const { password: newPassword } = req.body;
 
     if (!token) {
@@ -93,7 +96,8 @@ router.put("/forgetpassword", async (req, res) => {
 
 // Delete User
 router.delete("/user", async (req, res) => {
-    const token = req.headers.authorization;
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
     if (!token) {
         return res.status(401).json({ error: "Authorization token is required" });
     }

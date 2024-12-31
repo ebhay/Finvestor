@@ -21,7 +21,7 @@ const UserSchema = new mongoose.Schema({
         required: true
     },
     profit: { type: Number, default: 0.0 }
-});
+},{ versionKey: false });
 
 const Stock = mongoose.model("Stock",StockSchema);
 const User = mongoose.model("User", UserSchema);
