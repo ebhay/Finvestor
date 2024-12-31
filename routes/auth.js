@@ -97,7 +97,6 @@ router.put("/forgetpassword", async (req, res) => {
 // Delete User
 router.delete("/user", async (req, res) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
     if (!token) {
         return res.status(401).json({ error: "Authorization token is required" });
     }
