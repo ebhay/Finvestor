@@ -1,7 +1,5 @@
 import express from 'express';
-import jwt from 'jsonwebtoken';
 import { User, Stock } from '../models/db.js';
-
 import dotenv from "dotenv";
 import { auth } from '../middleware/auth.js';
 dotenv.config();
@@ -104,29 +102,23 @@ router.post("/buy",auth,async (req,res)=>{
 //Sell
 router.post("/sell", auth, async (req, res) => {
     const { id } = req.body;
-    
     if (!id) {
         return res.status(400).json({ message: "Please provide stock id" });
     }
-
     try {
         const user = await User.findOne({ userId: req.userId });
         if (!user) {
             return res.status(404).json({ message: "User not found." });
         }
-
         const stockIndex = user.stocks.findIndex(stock => stock.id === parseInt(id));
         if (stockIndex === -1) {
             return res.status(404).json({ message: "Stock not found in your portfolio." });
         }
-
         const stockToSell = user.stocks[stockIndex];
-
         const response = await fetch(
             `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${stockToSell.ticker}.${stockToSell.exchange}&apikey=${process.env.AV_KEY}`
         );
         const data = await response.json();
-        
         if (data['Error Message']) {
             return res.status(400).json({ message: "Error fetching current stock price." });
         }
