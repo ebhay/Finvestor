@@ -1,0 +1,29 @@
+{
+  "name": "my-react-vite-app",
+  "version": "1.0.0",
+  "description": "A React application for user authentication and stock management.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-router-dom": "^6.0.0"
+  },
+  "devDependencies": {
+    "vite": "^4.0.0",
+    "eslint": "^8.0.0",
+    "eslint-plugin-react": "^7.0.0"
+  },
+  "keywords": [
+    "react",
+    "vite",
+    "authentication",
+    "stock management"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
